@@ -1,0 +1,58 @@
+:root {
+  font-family: sans-serif;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+thead th,
+thead td {
+  padding: 0.5em 0.375em;
+}
+
+th {
+  white-space: nowrap;
+  font-size: 0.875em;
+}
+
+thead th,
+tfoot td {
+  text-align: center;
+}
+
+tbody th {
+  padding-right: 0.5em;
+}
+
+thead th,
+thead td {
+  border-bottom: 1px solid black;
+  background-color: #eee;
+}
+
+tfoot th,
+tfoot td {
+  border-top: 1px solid black;
+}
+
+tr th {
+  text-align: left;
+}
+
+tr {
+}
+
+input[type="number"] {
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 1em;
+}
