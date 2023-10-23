@@ -15,7 +15,7 @@
 
   const PLAYERS = ["P1", "P2", "P3", "P4", "P5", "P6"];
 
-  const FAMILY_PRESETS = [8, 11, 15, 20, 25, 30];
+  const FAMILY_PRESETS = [0, 8, 11, 15, 20, 25];
 
   /**
    * @type { { key:string, label:string, mode: string[], presets?:number[] }[]}
@@ -55,7 +55,7 @@
       key: "rare-treasures",
       label: "Rare",
       mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
-      presets: [3, 6, 9, 12, 15],
+      presets: [0, 3, 6, 9, 12, 15],
     },
     {
       key: "private-lessons",
@@ -82,13 +82,13 @@
       key: "rats",
       label: "Rats",
       mode: ALL_GAME_MODES,
-      presets: [-1, -2, -3, -4, -5],
+      presets: [0, -1, -2, -3, -4, -5],
     },
     {
       key: "rooms",
       label: "Rooms",
       mode: ALL_GAME_MODES,
-      presets: [-5, -10, -15, -20, -25],
+      presets: [0, -5, -10, -15, -20],
     },
   ];
 
@@ -125,7 +125,6 @@
   $: if ($state && browser) {
     try {
       localStorage.setItem("STATE", JSON.stringify($state));
-      console.log("saved", $state);
     } catch (err) {
       console.error(err);
     }
@@ -182,6 +181,32 @@
     focussedScoreCategory = scoreCategory;
   };
 
+  const handleFocusNext = (player, scoreCategory) => {
+    const currentPlayerIndex = activePlayers.indexOf(player);
+    const nextPlayerIndex =
+      currentPlayerIndex + 1 === activePlayers.length
+        ? 0
+        : currentPlayerIndex + 1;
+
+    if (nextPlayerIndex === 0) {
+      const currentScoreCategoryIndex = activeScoreCategories.findIndex(
+        (category) => category.key === scoreCategory
+      );
+      const nextScoreCategoryIndex =
+        currentScoreCategoryIndex + 1 === activeScoreCategories.length
+          ? 0
+          : currentScoreCategoryIndex + 1;
+
+      focussedScoreCategory = activeScoreCategories[nextScoreCategoryIndex].key;
+    }
+
+    focussedPlayer = activePlayers[nextPlayerIndex];
+
+    // focus the field
+    const fieldId = `${focussedPlayer}-${focussedScoreCategory}`;
+    document.getElementById(fieldId)?.focus();
+  };
+
   $: console.log(focussedPlayer, focussedScoreCategory);
 </script>
 
@@ -229,6 +254,8 @@
                   type="number"
                   min="0"
                   step="1"
+                  placeholder="0"
+                  id={`${player}-${key}`}
                   on:focus={() => handleFocus(player, key)}
                   bind:value={$state.players[player][key]}
                 />
@@ -264,6 +291,11 @@
                           type="radio"
                           value={preset}
                           bind:group={$state.players[player][key]}
+                          on:click={() => {
+                            setTimeout(() => {
+                              handleFocusNext(player, key);
+                            }, 100);
+                          }}
                           name={`${key}_${player}`}
                           id={`${key}_${player}_${k}`}
                         />
