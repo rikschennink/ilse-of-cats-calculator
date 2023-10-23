@@ -15,6 +15,7 @@ table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  border-bottom: 1px solid rgba(var(--color), 0.25);
 }
 
 tr:nth-child(even) {
@@ -83,7 +84,7 @@ tbody th {
 
 input[type="number"],
 tfoot td {
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-family: courier;
   font-weight: bold;
   text-align: right;
@@ -128,8 +129,13 @@ input[type="number"] {
   background: rgb(var(--color-dark));
   color: #fff;
 }
+
 .controls select {
-  width: 5rem;
+  width: auto;
+}
+
+.controls select:first-child {
+  margin-right: auto;
 }
 
 .controls button {

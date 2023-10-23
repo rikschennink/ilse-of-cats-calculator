@@ -2,6 +2,16 @@
   import { browser } from "$app/environment";
   import "./styles.css";
 
+  const gameModes = [
+    ["standard", "Standard game"],
+    ["family", "Family game"],
+    ["beasts", "Beasts game"],
+    ["events", "Events game"],
+    ["beasts,events", "Beasts & Events game"],
+  ];
+
+  let gameMode = gameModes[0][0];
+
   const defaultPlayerCount = "4";
   let playerCount = browser
     ? localStorage.getItem("playerCount") || defaultPlayerCount
@@ -48,53 +58,87 @@
     ];
   };
 
+  const ALL_GAME_MODES = ["standard", "family", "events", "beasts"];
+
   /**
-   * @type { { key:string, label:string, calc?:(v:number) => number }[]}
+   * @type { { key:string, label:string, calc?:(v:number) => number, mode: string[] }[]}
    */
   const scoreCategories = [
     {
       key: "blue-families",
       label: "Blue",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "green-families",
       label: "Green",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "orange-families",
       label: "Orange",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "purple-families",
       label: "Purple",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "red-families",
       label: "Red",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "rare-treasures",
       label: "Rare",
+      mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
     },
     {
       key: "private-lessons",
       label: "Lessons",
+      mode: ALL_GAME_MODES,
     },
     {
       key: "public-lessons",
       label: "Public",
+      mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
+    },
+    {
+      key: "events",
+      label: "Events",
+      mode: ["events"],
+    },
+    {
+      key: "beasts",
+      label: "Beasts",
+      mode: ["beasts"],
     },
     {
       key: "rats",
       label: "#Rats",
       calc: (v) => v * -1,
+      mode: ALL_GAME_MODES,
     },
     {
       key: "rooms",
       label: "#Rooms",
       calc: (v) => v * -5,
+      mode: ALL_GAME_MODES,
     },
   ];
+
+  $: activeScoreCategories = scoreCategories.filter((category) => {
+    const modes = gameMode.split(",");
+    return modes.some((mode) => category.mode.includes(mode));
+
+    // if () {
+
+    // }
+    // if (category.mode.includes(gameMode)) {
+    // 	return category;
+    // }
+  });
 
   // calculates the current scores
   $: scores = activePlayers.map((player) => {
@@ -102,9 +146,9 @@
     return player.values.reduce((totalScore, curr, index) => {
       let score = curr;
 
-      if (typeof scoreCategories[index].calc === "function") {
+      if (typeof activeScoreCategories[index].calc === "function") {
         score = /** @type { (v:number) => number } */ (
-          scoreCategories[index].calc
+          activeScoreCategories[index].calc
         )(score);
       }
 
@@ -127,6 +171,20 @@
   <meta name="description" content="Isle of Cats score app" />
 </svelte:head>
 
+<!--
+
+<fieldset>
+	<input type="radio" value="8">
+	<input type="radio" value="11">
+	<input type="radio" value="15">
+	<input type="radio" value="20">
+	<input type="radio" value="25">
+	<input type="radio" value="30">
+	<input type="radio" value="🖊️">
+</fieldset>
+
+-->
+
 <div class="app">
   <div class="controls">
     <select bind:value={playerCount}>
@@ -138,6 +196,12 @@
       <option value="6">Players 6</option>
     </select>
 
+    <select bind:value={gameMode}>
+      {#each gameModes as [value, label] (value)}
+        <option {value}>{label}</option>
+      {/each}
+    </select>
+
     <button on:click={handleReset}>Reset</button>
   </div>
 
@@ -147,13 +211,13 @@
         <tr>
           <th />
           {#each activePlayers as player}
-            <th>{player.name}</th>
+            <th>P{player.name}</th>
           {/each}
         </tr>
       </thead>
     {/if}
     <tbody>
-      {#each scoreCategories as scoreCategorie, i (scoreCategorie.key)}
+      {#each activeScoreCategories as scoreCategorie, i (scoreCategorie.key)}
         <tr class={scoreCategorie.key}>
           <th>{scoreCategorie.label}</th>
           {#each activePlayers as player, j}
