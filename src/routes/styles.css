@@ -5,6 +5,10 @@
   font-family: sans-serif;
 }
 
+html {
+  background-color: rgb(var(--color-dark));
+}
+
 html,
 body {
   padding: 0;
@@ -13,14 +17,15 @@ body {
 
 table {
   width: 100%;
+  background-color: #fff;
   border-collapse: collapse;
   table-layout: fixed;
   border-bottom: 1px solid rgba(var(--color), 0.25);
 }
 
-tr:nth-child(even) {
+/* tr:nth-child(even) {
   background: rgba(var(--color), 0.1);
-}
+} */
 
 tfoot th,
 tfoot td,
@@ -41,11 +46,17 @@ td {
   overflow: hidden;
   text-overflow: ellipsis;
   color: rgb(var(--color-dark));
+  position: relative;
 }
 
 tbody tr > th,
 tbody tr > td {
+  border-bottom: 1px solid rgba(var(--color), 0.1);
   border-right: 1px solid rgba(var(--color), 0.25);
+}
+
+tbody tr[data-active="false"] {
+  display: none;
 }
 
 tbody td {
@@ -59,13 +70,11 @@ tbody th {
 thead th,
 thead td {
   border-bottom: 1px solid rgba(var(--color), 0.25);
-  /* background-color: rgba(var(--color), 0.15); */
 }
 
 tfoot th,
 tfoot td {
   border-top: 1px dashed rgba(var(--color), 0.25);
-  /* background-color: rgba(var(--color), 0.15); */
 }
 
 tfoot td {
@@ -107,7 +116,7 @@ input[type="number"]:hover {
 
 input[type="number"]:focus {
   background: #fff;
-  box-shadow: inset 0 0 0 1px rgba(var(--color), 0.2);
+  box-shadow: inset 0 -0.25rem 0 0 rgba(var(--color), 0.2);
   outline: 0;
 }
 
@@ -119,6 +128,51 @@ input::-webkit-inner-spin-button {
 
 input[type="number"] {
   -moz-appearance: textfield;
+}
+
+fieldset {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.presets th,
+.presets td {
+  border-top: 1px solid rgba(var(--color), 0.1);
+}
+
+.presets div {
+  display: flex;
+  background: rgba(var(--color), 0.2);
+}
+
+.presets div[data-active="false"] {
+  display: none;
+}
+
+.preset {
+  flex: 1;
+}
+
+.preset input {
+  display: none;
+}
+
+.preset label {
+  display: block;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  font-family: courier;
+  font-weight: bold;
+  text-align: center;
+}
+
+.preset input:checked + label {
+  color: white;
+  background: rgb(var(--color-dark));
 }
 
 .controls {

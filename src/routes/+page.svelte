@@ -1,8 +1,11 @@
 <script>
   import { browser } from "$app/environment";
+  import { writable } from "svelte/store";
   import "./styles.css";
 
-  const gameModes = [
+  const ALL_GAME_MODES = ["standard", "family", "events", "beasts"];
+
+  const GAME_MODES = [
     ["standard", "Standard game"],
     ["family", "Family game"],
     ["beasts", "Beasts game"],
@@ -10,89 +13,49 @@
     ["beasts,events", "Beasts & Events game"],
   ];
 
-  let gameMode = gameModes[0][0];
+  const PLAYERS = ["P1", "P2", "P3", "P4", "P5", "P6"];
 
-  const defaultPlayerCount = "4";
-  let playerCount = browser
-    ? localStorage.getItem("playerCount") || defaultPlayerCount
-    : defaultPlayerCount;
-  $: playerCountInt = parseInt(playerCount, 10);
-
-  $: if (playerCount && browser) {
-    localStorage.setItem("playerCount", playerCount);
-  }
+  const FAMILY_PRESETS = [8, 11, 15, 20, 25, 30];
 
   /**
-   * @type { { name: string, values:number[] }[] }
+   * @type { { key:string, label:string, mode: string[], presets?:number[] }[]}
    */
-  let players = [];
-
-  $: activePlayers = players.slice(0, playerCountInt);
-
-  const reset = () => {
-    players = [
-      {
-        name: "1",
-        values: [],
-      },
-      {
-        name: "2",
-        values: [],
-      },
-      {
-        name: "3",
-        values: [],
-      },
-      {
-        name: "4",
-        values: [],
-      },
-      {
-        name: "5",
-        values: [],
-      },
-      {
-        name: "6",
-        values: [],
-      },
-    ];
-  };
-
-  const ALL_GAME_MODES = ["standard", "family", "events", "beasts"];
-
-  /**
-   * @type { { key:string, label:string, calc?:(v:number) => number, mode: string[] }[]}
-   */
-  const scoreCategories = [
+  const SCORE_CATEGORIES = [
     {
       key: "blue-families",
       label: "Blue",
       mode: ALL_GAME_MODES,
+      presets: FAMILY_PRESETS,
     },
     {
       key: "green-families",
       label: "Green",
       mode: ALL_GAME_MODES,
+      presets: FAMILY_PRESETS,
     },
     {
       key: "orange-families",
       label: "Orange",
       mode: ALL_GAME_MODES,
+      presets: FAMILY_PRESETS,
     },
     {
       key: "purple-families",
       label: "Purple",
       mode: ALL_GAME_MODES,
+      presets: FAMILY_PRESETS,
     },
     {
       key: "red-families",
       label: "Red",
       mode: ALL_GAME_MODES,
+      presets: FAMILY_PRESETS,
     },
     {
       key: "rare-treasures",
       label: "Rare",
       mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
+      presets: [3, 6, 9, 12, 15],
     },
     {
       key: "private-lessons",
@@ -113,47 +76,92 @@
       key: "beasts",
       label: "Beasts",
       mode: ["beasts"],
+      presets: [0, 5, 10, 15, 20, 25],
     },
     {
       key: "rats",
-      label: "#Rats",
-      calc: (v) => v * -1,
+      label: "Rats",
       mode: ALL_GAME_MODES,
+      presets: [-1, -2, -3, -4, -5],
     },
     {
       key: "rooms",
-      label: "#Rooms",
-      calc: (v) => v * -5,
+      label: "Rooms",
       mode: ALL_GAME_MODES,
+      presets: [-5, -10, -15, -20, -25],
     },
   ];
 
-  $: activeScoreCategories = scoreCategories.filter((category) => {
-    const modes = gameMode.split(",");
-    return modes.some((mode) => category.mode.includes(mode));
+  const reset = () => {
+    const playerCount = $state ? $state.playerCount : 4;
+    const gameMode = $state ? $state.gameMode : "standard";
+    $state = {
+      gameMode,
+      playerCount,
+      players: PLAYERS.reduce((players, key) => {
+        // empty player score object
+        players[key] = {};
+        return players;
+      }, {}),
+    };
+  };
 
-    // if () {
+  // read current game state
+  const state = writable();
 
-    // }
-    // if (category.mode.includes(gameMode)) {
-    // 	return category;
-    // }
-  });
+  if (browser) {
+    try {
+      const stateStr = localStorage.getItem("STATE");
+      if (stateStr) {
+        $state = JSON.parse(stateStr);
+      } else {
+        reset();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  $: if ($state && browser) {
+    try {
+      localStorage.setItem("STATE", JSON.stringify($state));
+      console.log("saved", $state);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  $: activeScoreCategories = $state
+    ? SCORE_CATEGORIES.filter((category) => {
+        /** @type {string[]} */
+        const modes = $state.gameMode.split(",");
+        return modes.some((mode) => category.mode.includes(mode));
+      })
+    : [];
 
   // calculates the current scores
+  $: activePlayers = $state
+    ? Object.keys($state.players).slice(0, $state.playerCount)
+    : [];
+
   $: scores = activePlayers.map((player) => {
-    // loop over values
-    return player.values.reduce((totalScore, curr, index) => {
-      let score = curr;
-
-      if (typeof activeScoreCategories[index].calc === "function") {
-        score = /** @type { (v:number) => number } */ (
-          activeScoreCategories[index].calc
-        )(score);
+    /**
+     * @type { { [key:string]:number } }
+     */
+    const playerScores = $state.players[player];
+    let playerScore = 0;
+    Object.entries(playerScores).forEach(([key, value]) => {
+      const scoreCategorie = SCORE_CATEGORIES.find(
+        (category) => category.key === key
+      );
+      if (scoreCategorie && scoreCategorie.calc) {
+        playerScore += scoreCategorie.calc(value);
+      } else {
+        playerScore += value;
       }
+    });
 
-      return totalScore + score;
-    }, 0);
+    return playerScore;
   });
 
   // reset the scoreboard
@@ -162,84 +170,121 @@
     reset();
   };
 
-  // set initial scores
-  reset();
+  let focussedPlayer = "";
+  let focussedScoreCategory = "";
+  /**
+   *
+   * @param {string} player
+   * @param {string} scoreCategory
+   */
+  const handleFocus = (player, scoreCategory) => {
+    focussedPlayer = player;
+    focussedScoreCategory = scoreCategory;
+  };
+
+  $: console.log(focussedPlayer, focussedScoreCategory);
 </script>
 
 <svelte:head>
-  <title>Isle of Cats</title>
+  <title>Isle of Cats score app</title>
   <meta name="description" content="Isle of Cats score app" />
 </svelte:head>
 
-<!--
-
-<fieldset>
-	<input type="radio" value="8">
-	<input type="radio" value="11">
-	<input type="radio" value="15">
-	<input type="radio" value="20">
-	<input type="radio" value="25">
-	<input type="radio" value="30">
-	<input type="radio" value="🖊️">
-</fieldset>
-
--->
-
-<div class="app">
-  <div class="controls">
-    <select bind:value={playerCount}>
-      <option value="1">Players 1</option>
-      <option value="2">Players 2</option>
-      <option value="3">Players 3</option>
-      <option value="4">Players 4</option>
-      <option value="5">Players 5</option>
-      <option value="6">Players 6</option>
-    </select>
-
-    <select bind:value={gameMode}>
-      {#each gameModes as [value, label] (value)}
-        <option {value}>{label}</option>
-      {/each}
-    </select>
-
-    <button on:click={handleReset}>Reset</button>
-  </div>
-
-  <table>
-    {#if playerCountInt > 1}
-      <thead>
-        <tr>
-          <th />
-          {#each activePlayers as player}
-            <th>P{player.name}</th>
-          {/each}
-        </tr>
-      </thead>
-    {/if}
-    <tbody>
-      {#each activeScoreCategories as scoreCategorie, i (scoreCategorie.key)}
-        <tr class={scoreCategorie.key}>
-          <th>{scoreCategorie.label}</th>
-          {#each activePlayers as player, j}
-            <td
-              ><input
-                type="number"
-                min="0"
-                step="1"
-                bind:value={activePlayers[j].values[i]}
-              /></td
-            >
-          {/each}
-        </tr>
-      {/each}
-    </tbody>
-    <tfoot>
-      <tr>
-        <th>Total</th>
-        {#each scores as score}
-          <td>{score}</td>
+{#if browser}
+  <div class="app">
+    <div class="controls">
+      <select bind:value={$state.playerCount}>
+        {#each PLAYERS as _, i}
+          <option value={i + 1}>Players {i + 1}</option>
         {/each}
-      </tr>
-    </tfoot>
-  </table>
-</div>
+      </select>
+
+      <select bind:value={$state.gameMode}>
+        {#each GAME_MODES as [value, label] (value)}
+          <option {value}>{label}</option>
+        {/each}
+      </select>
+
+      <button on:click={handleReset}>Reset</button>
+    </div>
+
+    <table>
+      {#if $state.playerCount > 1}
+        <thead>
+          <tr>
+            <th />
+            {#each activePlayers as player}
+              <th>{player}</th>
+            {/each}
+          </tr>
+        </thead>
+      {/if}
+      <tbody>
+        {#each activeScoreCategories as { key, label, presets } (key)}
+          <tr class={key}>
+            <th>{label}</th>
+            {#each activePlayers as player}
+              <td
+                ><input
+                  type="number"
+                  min="0"
+                  step="1"
+                  on:focus={() => handleFocus(player, key)}
+                  bind:value={$state.players[player][key]}
+                />
+                <div
+                  class="preset-pointer"
+                  data-active={`${
+                    focussedPlayer === player && focussedScoreCategory === key
+                      ? "true"
+                      : "false"
+                  }`}
+                />
+              </td>
+            {/each}
+          </tr>
+          {#if presets}
+            <tr
+              class="presets"
+              data-active={focussedScoreCategory === key ? "true" : "false"}
+            >
+              <th />
+              <td colspan={$state.playerCount}>
+                {#each activePlayers as player}
+                  <div
+                    data-active={`${
+                      focussedPlayer === player && focussedScoreCategory === key
+                        ? "true"
+                        : "false"
+                    }`}
+                  >
+                    {#each presets as preset, k}
+                      <span class="preset">
+                        <input
+                          type="radio"
+                          value={preset}
+                          bind:group={$state.players[player][key]}
+                          name={`${key}_${player}`}
+                          id={`${key}_${player}_${k}`}
+                        />
+                        <label for={`${key}_${player}_${k}`}>{preset}</label>
+                      </span>
+                    {/each}
+                  </div>
+                {/each}
+              </td>
+            </tr>
+          {/if}
+        {/each}
+      </tbody>
+      <tfoot>
+        <tr>
+          <th>Total</th>
+          {#each scores as score}
+            <td>{score}</td>
+          {/each}
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+{/if}
