@@ -147,6 +147,10 @@ fieldset {
   padding: 0;
 }
 
+.presets {
+  background: rgba(var(--color), 0.2);
+}
+
 .presets th,
 .presets td {
   border-top: 1px solid rgba(var(--color), 0.1);
@@ -154,7 +158,6 @@ fieldset {
 
 .presets div {
   display: flex;
-  background: rgba(var(--color), 0.2);
 }
 
 .presets div[data-active="false"] {
