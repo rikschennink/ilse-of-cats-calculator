@@ -221,12 +221,30 @@
 
   // read current game state
   const state = writable();
+  let activePlayer = "";
+  let activeCategory = "";
 
+  /**
+   *
+   * @param { any } state
+   */
+  const isValidState = (state) => {
+    return (
+      typeof state.players === "object" &&
+      typeof state.playerCount === "number" &&
+      typeof state.gameMode === "string"
+    );
+  };
   if (browser) {
     try {
       const stateStr = localStorage.getItem("STATE");
       if (stateStr) {
-        $state = JSON.parse(stateStr);
+        const storedState = JSON.parse(stateStr);
+        if (isValidState(storedState)) {
+          $state = storedState;
+        } else {
+          reset();
+        }
       } else {
         reset();
       }
@@ -287,9 +305,6 @@
     if (!confirm("Are you sure you want to reset the scores?")) return;
     reset();
   };
-
-  let activePlayer = "";
-  let activeCategory = "";
 
   /**
    * @param {string} player
