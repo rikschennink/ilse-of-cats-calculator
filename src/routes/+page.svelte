@@ -3,6 +3,8 @@
   import { writable } from "svelte/store";
   import "./styles.css";
 
+  const AWARDS = ["🥇", "🥈", "🥉"];
+
   const ALL_GAME_MODES = ["standard", "family", "events", "beasts"];
 
   const GAME_MODES = [
@@ -13,79 +15,146 @@
     ["beasts,events", "Beasts & Events game"],
   ];
 
+  /** @type { [string,string][] } */
+  const AVATARS = [
+    "Blue Hissnipper", // blue
+    "Crystal Garmin", // green
+    "Orange Mhoxxite", // orange
+    "Teruvian", // red
+    "Starry Vandermil", // purple
+    "Oshax", // white
+  ].map((cat) => [cat.toLowerCase().replaceAll(" ", "-"), cat]);
+
   const PLAYERS = ["P1", "P2", "P3", "P4", "P5", "P6"];
 
   const FAMILY_PRESETS = [0, 8, 11, 15, 20, 25];
 
   /**
-   * @type { { key:string, label:string, mode: string[], presets?:number[] }[]}
+   *
+   * @param {string} value
+   * @returns {number}
+   */
+  const calcLessonTotal = (value) => {
+    if (!value) return 0;
+
+    const lines = value
+      .split(/,| |\n/g)
+      .map((line) => line.trim())
+      .map((line) => parseInt(line, 10))
+      .filter((line) => !isNaN(line));
+
+    return lines.reduce((prev, curr) => {
+      return prev + curr;
+    }, 0);
+  };
+
+  /**
+   * @type { { key:string, label:string, mode: string[], min:number|null, max:number|null, step: number, presets?:number[], type?: string }[]}
    */
   const SCORE_CATEGORIES = [
     {
       key: "blue-families",
       label: "Blue",
       mode: ALL_GAME_MODES,
+      min: 0,
+      max: null,
+      step: 1,
       presets: FAMILY_PRESETS,
     },
     {
       key: "green-families",
       label: "Green",
       mode: ALL_GAME_MODES,
+      min: 0,
+      max: null,
+      step: 1,
       presets: FAMILY_PRESETS,
     },
     {
       key: "orange-families",
       label: "Orange",
       mode: ALL_GAME_MODES,
+      min: 0,
+      max: null,
+      step: 1,
       presets: FAMILY_PRESETS,
     },
     {
       key: "purple-families",
       label: "Purple",
       mode: ALL_GAME_MODES,
+      min: 0,
+      max: null,
+      step: 1,
       presets: FAMILY_PRESETS,
     },
     {
       key: "red-families",
       label: "Red",
+      min: 0,
+      max: null,
+      step: 1,
       mode: ALL_GAME_MODES,
       presets: FAMILY_PRESETS,
     },
     {
       key: "rare-treasures",
       label: "Rare",
+      min: 0,
+      max: null,
+      step: 3,
       mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
       presets: [0, 3, 6, 9, 12, 15],
     },
     {
       key: "private-lessons",
       label: "Lessons",
+      min: 0,
+      max: null,
+      step: 1,
       mode: ALL_GAME_MODES,
+      type: "textarea",
     },
     {
       key: "public-lessons",
       label: "Public",
+      min: null,
+      max: null,
+      step: 1,
       mode: ALL_GAME_MODES.filter((mode) => mode !== "family"),
+      type: "textarea",
     },
     {
       key: "events",
       label: "Events",
+      min: 0,
+      max: null,
+      step: 1,
       mode: ["events"],
     },
     {
       key: "beasts",
       label: "Beasts",
       mode: ["beasts"],
+      min: 0,
+      max: null,
+      step: 5,
       presets: [0, 5, 10, 15, 20, 25],
     },
     {
       key: "rats",
+      min: -35,
+      max: 0,
+      step: 1,
       label: "Rats",
       mode: ALL_GAME_MODES,
       presets: [0, -1, -2, -3, -4, -5],
     },
     {
       key: "rooms",
+      min: -35,
+      step: 5,
+      max: 0,
       label: "Rooms",
       mode: ALL_GAME_MODES,
       presets: [0, -5, -10, -15, -20],
@@ -98,13 +167,57 @@
     $state = {
       gameMode,
       playerCount,
-      players: PLAYERS.reduce((players, key) => {
+      players: PLAYERS.reduce((obj, key) => {
         // empty player score object
-        players[key] = {};
-        return players;
-      }, {}),
+        obj[key] = {
+          avatar: null,
+          scores: {},
+        };
+        return obj;
+      }, /** @type { { [key:string]: any } }*/ ({})),
     };
+
+    // reset player and UI focus
+    activePlayer = "P1";
+    activeCategory = "avatar";
   };
+
+  /**
+   *
+   * @param {string} str
+   */
+  const getLineCount = (str) => Math.max(1, (str || "").split("\n").length);
+
+  const hasScores = () => {
+    return Object.values($state.players).some(
+      (player) => Object.keys(player.scores).length
+    );
+  };
+
+  // changing players resets the game
+  /** @type {number} */
+  let prevPlayerCount;
+  $: activePlayerCount = $state && $state.playerCount;
+  $: if (prevPlayerCount !== activePlayerCount) {
+    if (prevPlayerCount) reset();
+    prevPlayerCount = activePlayerCount;
+  }
+
+  // changing game mode resets the game
+  /** @type {string} */
+  let prevGameMode;
+  $: activeGameMode = $state && $state.gameMode;
+  $: if (prevGameMode !== activeGameMode && hasScores()) {
+    if (prevGameMode) reset();
+    prevGameMode = activeGameMode;
+  }
+
+  $: availableAvatars =
+    $state &&
+    AVATARS.filter(
+      ([key]) =>
+        !Object.values($state.players).some((player) => player.avatar === key)
+    ).map(([key]) => key);
 
   // read current game state
   const state = writable();
@@ -143,24 +256,30 @@
     ? Object.keys($state.players).slice(0, $state.playerCount)
     : [];
 
-  $: scores = activePlayers.map((player) => {
+  $: scores = (activePlayers || []).map((player) => {
     /**
      * @type { { [key:string]:number } }
      */
-    const playerScores = $state.players[player];
+    const playerScores = $state.players[player].scores;
     let playerScore = 0;
     Object.entries(playerScores).forEach(([key, value]) => {
       const scoreCategorie = SCORE_CATEGORIES.find(
         (category) => category.key === key
       );
-      if (scoreCategorie && scoreCategorie.calc) {
-        playerScore += scoreCategorie.calc(value);
+      if (scoreCategorie && scoreCategorie.type === "textarea") {
+        playerScore += calcLessonTotal(value);
       } else {
         playerScore += value;
       }
     });
 
-    return playerScore;
+    return [player, playerScore];
+  });
+
+  $: scoresSorted = scores.sort((a, b) => {
+    if (a[1] < b[1]) return 1;
+    if (a[1] > b[1]) return -1;
+    return 0;
   });
 
   // reset the scoreboard
@@ -169,24 +288,36 @@
     reset();
   };
 
-  let focussedPlayer = "";
-  let focussedScoreCategory = "";
+  let activePlayer = "";
+  let activeCategory = "";
+
   /**
-   *
    * @param {string} player
    * @param {string} scoreCategory
    */
   const handleFocus = (player, scoreCategory) => {
-    focussedPlayer = player;
-    focussedScoreCategory = scoreCategory;
+    activePlayer = player;
+    activeCategory = scoreCategory;
   };
 
-  const handleFocusNext = (player, scoreCategory) => {
+  /**
+   *
+   * @param { string } player
+   * @returns { number }
+   */
+  const getNextPlayerIndex = (player) => {
     const currentPlayerIndex = activePlayers.indexOf(player);
-    const nextPlayerIndex =
-      currentPlayerIndex + 1 === activePlayers.length
-        ? 0
-        : currentPlayerIndex + 1;
+    return currentPlayerIndex + 1 === activePlayers.length
+      ? 0
+      : currentPlayerIndex + 1;
+  };
+
+  /**
+   * @param {string} player
+   * @param {string} scoreCategory
+   */
+  const handleFocusNext = (player, scoreCategory) => {
+    const nextPlayerIndex = getNextPlayerIndex(player);
 
     if (nextPlayerIndex === 0) {
       const currentScoreCategoryIndex = activeScoreCategories.findIndex(
@@ -194,20 +325,25 @@
       );
       const nextScoreCategoryIndex =
         currentScoreCategoryIndex + 1 === activeScoreCategories.length
-          ? 0
+          ? -1
           : currentScoreCategoryIndex + 1;
 
-      focussedScoreCategory = activeScoreCategories[nextScoreCategoryIndex].key;
+      if (nextScoreCategoryIndex === -1) {
+        // stop!
+        activeCategory = "";
+        activePlayer = "";
+        return;
+      }
+
+      activeCategory = activeScoreCategories[nextScoreCategoryIndex].key;
     }
 
-    focussedPlayer = activePlayers[nextPlayerIndex];
+    activePlayer = activePlayers[nextPlayerIndex];
 
     // focus the field
-    const fieldId = `${focussedPlayer}-${focussedScoreCategory}`;
+    const fieldId = `${activePlayer}-${activeCategory}`;
     document.getElementById(fieldId)?.focus();
   };
-
-  $: console.log(focussedPlayer, focussedScoreCategory);
 </script>
 
 <svelte:head>
@@ -223,100 +359,190 @@
           <option value={i + 1}>Players {i + 1}</option>
         {/each}
       </select>
-
       <select bind:value={$state.gameMode}>
         {#each GAME_MODES as [value, label] (value)}
           <option {value}>{label}</option>
         {/each}
       </select>
-
       <button on:click={handleReset}>Reset</button>
     </div>
 
-    <table>
-      {#if $state.playerCount > 1}
-        <thead>
-          <tr>
-            <th />
-            {#each activePlayers as player}
-              <th>{player}</th>
-            {/each}
-          </tr>
-        </thead>
-      {/if}
-      <tbody>
-        {#each activeScoreCategories as { key, label, presets } (key)}
-          <tr class={key}>
-            <th>{label}</th>
-            {#each activePlayers as player}
-              <td
-                ><input
-                  type="number"
-                  min="0"
-                  step="1"
-                  placeholder="0"
-                  id={`${player}-${key}`}
-                  on:focus={() => handleFocus(player, key)}
-                  bind:value={$state.players[player][key]}
-                />
-                <div
-                  class="preset-pointer"
-                  data-active={`${
-                    focussedPlayer === player && focussedScoreCategory === key
-                      ? "true"
-                      : "false"
-                  }`}
-                />
-              </td>
-            {/each}
-          </tr>
-          {#if presets}
-            <tr
-              class="presets"
-              data-active={focussedScoreCategory === key ? "true" : "false"}
-            >
+    <div class="table-wrapper">
+      <table>
+        {#if $state.playerCount > 1}
+          <thead>
+            <tr data-avatar-input={activeCategory === "avatar"}>
               <th />
-              <td colspan={$state.playerCount}>
+              {#each activePlayers as player, i}
+                <th>
+                  <input
+                    type="radio"
+                    bind:group={activePlayer}
+                    on:click={() => {
+                      activeCategory = "avatar";
+                      activePlayer = player;
+                    }}
+                    value={player}
+                    id={player}
+                    name="avatars"
+                  />
+                  <label for={player}>
+                    {#if $state.players[player].avatar}
+                      <img
+                        src={`/avatar/${$state.players[player].avatar}.png`}
+                        alt={player}
+                        draggable="false"
+                      />
+                    {:else}
+                      <img
+                        src={`/avatar/${AVATARS[i][0]}.png`}
+                        alt={AVATARS[i][1]}
+                        class="avatar-placeholder"
+                        draggable="false"
+                      />
+                    {/if}
+                  </label>
+                </th>
+              {/each}
+            </tr>
+            <tr class="presets avatars">
+              <td colspan={$state.playerCount + 1}>
                 {#each activePlayers as player}
                   <div
                     data-active={`${
-                      focussedPlayer === player && focussedScoreCategory === key
+                      activePlayer === player && activeCategory === "avatar"
                         ? "true"
                         : "false"
                     }`}
                   >
-                    {#each presets as preset, k}
-                      <span class="preset">
+                    {#each AVATARS as [key, label]}
+                      <span class="preset avatar">
                         <input
                           type="radio"
-                          value={preset}
-                          bind:group={$state.players[player][key]}
+                          value={key}
+                          disabled={!availableAvatars.includes(key) &&
+                            key !== $state.players[player].avatar}
+                          bind:group={$state.players[player].avatar}
                           on:click={() => {
-                            setTimeout(() => {
-                              handleFocusNext(player, key);
-                            }, 100);
+                            const nextPlayerIndex = getNextPlayerIndex(player);
+
+                            // done! move to score categories
+                            if (nextPlayerIndex === 0) {
+                              activeCategory = "";
+                              activePlayer = "P1";
+                              return;
+                            }
+
+                            // select next player
+                            activePlayer = activePlayers[nextPlayerIndex];
                           }}
-                          name={`${key}_${player}`}
-                          id={`${key}_${player}_${k}`}
+                          name={`avatar_${player}`}
+                          id={`avatar_${player}_${key}`}
                         />
-                        <label for={`${key}_${player}_${k}`}>{preset}</label>
+                        <label for={`avatar_${player}_${key}`}
+                          ><img
+                            src={`/avatar/${key}.png`}
+                            alt={label}
+                            draggable="false"
+                          /></label
+                        >
                       </span>
                     {/each}
                   </div>
                 {/each}
               </td>
             </tr>
-          {/if}
-        {/each}
-      </tbody>
-      <tfoot>
-        <tr>
-          <th>Total</th>
-          {#each scores as score}
-            <td>{score}</td>
+          </thead>
+        {/if}
+        <tbody>
+          {#each activeScoreCategories as { key, label, min, max, step, presets, type } (key)}
+            <tr
+              class={`${key} scores`}
+              data-active={activeCategory === key ? "true" : "false"}
+            >
+              <th>{label}</th>
+              {#each activePlayers as player}
+                <td>
+                  {#if type === "textarea"}
+                    <textarea
+                      placeholder="0"
+                      id={`${player}-${key}`}
+                      style={`--lines: ${getLineCount(
+                        $state.players[player].scores[key]
+                      )}`}
+                      on:focus={() => handleFocus(player, key)}
+                      bind:value={$state.players[player].scores[key]}
+                    />
+                  {:else}
+                    <input
+                      type="number"
+                      {min}
+                      {max}
+                      {step}
+                      placeholder="0"
+                      id={`${player}-${key}`}
+                      on:focus={() => handleFocus(player, key)}
+                      bind:value={$state.players[player].scores[key]}
+                    />
+                  {/if}
+                </td>
+              {/each}
+            </tr>
+            {#if presets}
+              <tr
+                class={`${key} presets`}
+                data-active={activeCategory === key ? "true" : "false"}
+              >
+                <td colspan={$state.playerCount + 1}>
+                  {#each activePlayers as player}
+                    <div
+                      data-active={`${
+                        activePlayer === player && activeCategory === key
+                          ? "true"
+                          : "false"
+                      }`}
+                    >
+                      {#each presets as preset, k}
+                        <span class="preset score">
+                          <input
+                            type="radio"
+                            value={preset}
+                            bind:group={$state.players[player].scores[key]}
+                            on:click={() => {
+                              setTimeout(() => {
+                                handleFocusNext(player, key);
+                              }, 100);
+                            }}
+                            name={`${key}_${player}`}
+                            id={`${key}_${player}_${k}`}
+                          />
+                          <label for={`${key}_${player}_${k}`}>{preset}</label>
+                        </span>
+                      {/each}
+                    </div>
+                  {/each}
+                </td>
+              </tr>
+            {/if}
           {/each}
-        </tr>
-      </tfoot>
-    </table>
+        </tbody>
+        {#if scores}
+          <tfoot>
+            <tr>
+              <th />
+              {#each activePlayers as player, i}
+                <td>
+                  {scores[i][1]}
+                  <span class="award"
+                    >{AWARDS[scores.findIndex(([p]) => p === player)] ||
+                      ""}</span
+                  >
+                </td>
+              {/each}
+            </tr>
+          </tfoot>
+        {/if}
+      </table>
+    </div>
   </div>
 {/if}
