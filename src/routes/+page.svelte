@@ -283,13 +283,14 @@
      * @type { { [key:string]:number } }
      */
     const playerScores = $state.players[player].scores;
+
     let playerScore = 0;
     Object.entries(playerScores).forEach(([key, value]) => {
       const scoreCategorie = SCORE_CATEGORIES.find(
         (category) => category.key === key
       );
       if (scoreCategorie && scoreCategorie.type === "textarea") {
-        playerScore += calcLessonTotal(value);
+        playerScore += calcLessonTotal(`${value}`);
       } else {
         playerScore += value;
       }
@@ -298,7 +299,7 @@
     return [player, playerScore];
   });
 
-  $: scoresSorted = scores.sort((a, b) => {
+  $: ranking = [...scores].sort((a, b) => {
     if (a[1] < b[1]) return 1;
     if (a[1] > b[1]) return -1;
     return 0;
@@ -489,6 +490,10 @@
                       style={`--lines: ${getLineCount(
                         $state.players[player].scores[key]
                       )}`}
+                      on:keypress={(e) => {
+                        if (!/[0-9]|Enter|Backspace/.test(e.key))
+                          e.preventDefault();
+                      }}
                       on:focus={() => handleFocus(player, key)}
                       bind:value={$state.players[player].scores[key]}
                     />
@@ -553,7 +558,7 @@
                 <td>
                   {scores[i][1]}
                   <span class="award"
-                    >{AWARDS[scores.findIndex(([p]) => p === player)] ||
+                    >{AWARDS[ranking.findIndex(([p]) => p === player)] ||
                       ""}</span
                   >
                 </td>
