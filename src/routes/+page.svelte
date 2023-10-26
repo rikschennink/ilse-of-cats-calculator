@@ -230,9 +230,11 @@
    */
   const isValidState = (state) => {
     return (
-      typeof state.players === "object" &&
       typeof state.playerCount === "number" &&
-      typeof state.gameMode === "string"
+      typeof state.gameMode === "string" &&
+      typeof state.players === "object" &&
+      Object.values(state.players).length === PLAYERS.length &&
+      Object.values(state.players).every((value) => typeof value === "object")
     );
   };
   if (browser) {
