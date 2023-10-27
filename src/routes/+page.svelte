@@ -367,8 +367,11 @@
 </script>
 
 <svelte:head>
-  <title>Isle of Cats score app</title>
-  <meta name="description" content="Isle of Cats score app" />
+  <title>Isle of Cats Score Calculator</title>
+  <meta name="description" content="Isle of Cats Score Calculator" />
+  <meta name="theme-color" content="#F7ECDC" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-touch-startup-image" content="splash.png" />
 </svelte:head>
 
 {#if browser}
