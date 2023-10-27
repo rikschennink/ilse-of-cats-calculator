@@ -27,7 +27,7 @@
 
   const PLAYERS = ["P1", "P2", "P3", "P4", "P5", "P6"];
 
-  const FAMILY_PRESETS = [0, 8, 11, 15, 20, 25];
+  const FAMILY_PRESETS = [0, 8, 11, 15, 20, 25, 30, 35, 40, 45, 50, 60, 65, 70];
 
   /**
    *
@@ -148,7 +148,7 @@
       step: 1,
       label: "Rats",
       mode: ALL_GAME_MODES,
-      presets: [0, -1, -2, -3, -4, -5],
+      presets: [0, -1, -2, -3, -4, -5, -6, -7, -8, -9, -10],
     },
     {
       key: "rooms",
@@ -157,7 +157,7 @@
       max: 0,
       label: "Rooms",
       mode: ALL_GAME_MODES,
-      presets: [0, -5, -10, -15, -20],
+      presets: [0, -5, -10, -15, -20, -25, -30, -35],
     },
   ];
 
@@ -391,40 +391,6 @@
       <table>
         {#if $state.playerCount > 1}
           <thead>
-            <tr data-avatar-input={activeCategory === "avatar"}>
-              <th />
-              {#each activePlayers as player, i}
-                <th>
-                  <input
-                    type="radio"
-                    bind:group={activePlayer}
-                    on:click={() => {
-                      activeCategory = "avatar";
-                      activePlayer = player;
-                    }}
-                    value={player}
-                    id={player}
-                    name="avatars"
-                  />
-                  <label for={player}>
-                    {#if $state.players[player].avatar}
-                      <img
-                        src={`/avatar/${$state.players[player].avatar}.png`}
-                        alt={player}
-                        draggable="false"
-                      />
-                    {:else}
-                      <img
-                        src={`/avatar/${AVATARS[i][0]}.png`}
-                        alt={AVATARS[i][1]}
-                        class="avatar-placeholder"
-                        draggable="false"
-                      />
-                    {/if}
-                  </label>
-                </th>
-              {/each}
-            </tr>
             <tr class="presets avatars">
               <td colspan={$state.playerCount + 1}>
                 {#each activePlayers as player}
@@ -472,6 +438,50 @@
                 {/each}
               </td>
             </tr>
+            <tr data-avatar-input={activeCategory === "avatar"}>
+              <th />
+              {#each activePlayers as player, i}
+                <th data-active={activePlayer === player ? "true" : "false"}>
+                  <input
+                    type="radio"
+                    bind:group={activePlayer}
+                    on:click={() => {
+                      // hide
+                      if (
+                        activePlayer === player &&
+                        activeCategory === "avatar"
+                      ) {
+                        activeCategory = "";
+                      }
+                      // show
+                      else {
+                        activeCategory = "avatar";
+                        activePlayer = player;
+                      }
+                    }}
+                    value={player}
+                    id={player}
+                    name="avatars"
+                  />
+                  <label for={player}>
+                    {#if $state.players[player].avatar}
+                      <img
+                        src={`/avatar/${$state.players[player].avatar}.png`}
+                        alt={player}
+                        draggable="false"
+                      />
+                    {:else}
+                      <img
+                        src={`/avatar/${AVATARS[i][0]}.png`}
+                        alt={AVATARS[i][1]}
+                        class="avatar-placeholder"
+                        draggable="false"
+                      />
+                    {/if}
+                  </label>
+                </th>
+              {/each}
+            </tr>
           </thead>
         {/if}
         <tbody>
@@ -482,14 +492,14 @@
             >
               <th>{label}</th>
               {#each activePlayers as player}
-                <td>
+                <td data-active={activePlayer === player ? "true" : "false"}>
                   {#if type === "textarea"}
                     <textarea
-                      placeholder="0"
+                      placeholder={`0\n0`}
                       id={`${player}-${key}`}
-                      style={`--lines: ${getLineCount(
-                        $state.players[player].scores[key]
-                      )}`}
+                      style={`--lines: ${
+                        getLineCount($state.players[player].scores[key]) + 1
+                      }`}
                       on:keypress={(e) => {
                         if (!/[0-9]|Enter|Backspace/.test(e.key))
                           e.preventDefault();
@@ -550,22 +560,22 @@
             {/if}
           {/each}
         </tbody>
-        {#if scores}
-          <tfoot>
-            <tr>
-              <th />
-              {#each activePlayers as player, i}
-                <td>
-                  {scores[i][1]}
+        <tfoot>
+          <tr>
+            <th />
+            {#each activePlayers as player, i}
+              <td data-active={activePlayer === player ? "true" : "false"}>
+                {scores[i][1]}
+                {#if scores.some(([, score]) => score !== 0)}
                   <span class="award"
                     >{AWARDS[ranking.findIndex(([p]) => p === player)] ||
                       ""}</span
                   >
-                </td>
-              {/each}
-            </tr>
-          </tfoot>
-        {/if}
+                {/if}
+              </td>
+            {/each}
+          </tr>
+        </tfoot>
       </table>
     </div>
   </div>
