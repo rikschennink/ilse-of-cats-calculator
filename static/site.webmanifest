@@ -1,6 +1,6 @@
 {
-  "name": "Isle of Cats Score Calculator",
-  "short_name": "Isle of Cats",
+  "name": "Meow Meter, an Isle of Cats Score Calculator",
+  "short_name": "Meow Meter",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
