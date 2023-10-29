@@ -501,7 +501,7 @@
                 <td data-active={activePlayer === player ? "true" : "false"}>
                   {#if type === "textarea"}
                     <textarea
-                      inputmode="numeric"
+                      enterkeyhint="enter"
                       placeholder={`0\n0`}
                       id={`${player}-${key}`}
                       style={`--lines: ${
@@ -517,6 +517,7 @@
                   {:else}
                     <input
                       type="number"
+                      enterkeyhint="next"
                       {min}
                       {max}
                       {step}
@@ -524,6 +525,12 @@
                       id={`${player}-${key}`}
                       on:focus={() => handleFocus(player, key)}
                       bind:value={$state.players[player].scores[key]}
+                      on:keypress={(e) => {
+                        if (/Enter/.test(e.key)) {
+                          handleFocusNext(player, key);
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   {/if}
                 </td>
