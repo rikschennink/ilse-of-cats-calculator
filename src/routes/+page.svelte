@@ -501,6 +501,7 @@
                 <td data-active={activePlayer === player ? "true" : "false"}>
                   {#if type === "textarea"}
                     <textarea
+                      inputmode="numeric"
                       placeholder={`0\n0`}
                       id={`${player}-${key}`}
                       style={`--lines: ${
